@@ -152,10 +152,7 @@ func (f *FileHandler) ReadUserSecretId(filePath *string) (uuid.UUID, error) {
 		_, err = os.Stat(filePathToCheck)
 		if err != nil {
 			if os.IsNotExist(err) {
-				if err != nil {
-					fmt.Println("Error reading file:", err)
-					return uuid.New(), err
-				}
+				return uuid.New(), err
 			} else {
 				pathToGetFrom = filePathToCheck
 			}
