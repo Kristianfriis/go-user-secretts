@@ -33,11 +33,11 @@ func setupSecretFiles() {
 	fileHandler.HandleUserFile()
 }
 
-func AddUserSecretsIfApplicable() error {
+func AddUserSecretsIfApplicable(subDir string) error {
 	conf := config.NewConfig()
 	fh := filehandler.NewFileHandler(&conf)
 
-	secret, err := fh.ReadUserSecretId(nil)
+	secret, err := fh.ReadUserSecretId(nil, subDir)
 
 	if err != nil {
 		fmt.Println("could not get secrets id")

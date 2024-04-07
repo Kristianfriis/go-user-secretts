@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/Kristianfriis/go-user-secrets/pkg/config"
 	"github.com/google/uuid"
@@ -43,7 +45,7 @@ func (f *FileHandler) HandleLocalFile() error {
 		}
 	}
 
-	userid, err := f.ReadUserSecretId(&filePath)
+	userid, err := f.ReadUserSecretId(&filePath, "")
 	if err != nil {
 		currentDir, err := os.Getwd()
 		if err != nil {
@@ -137,7 +139,7 @@ func (f *FileHandler) checkAndCreateUserSecretsFolder() (string, error) {
 	return dirPath, nil
 }
 
-func (f *FileHandler) ReadUserSecretId(filePath *string) (uuid.UUID, error) {
+func (f *FileHandler) ReadUserSecretId(filePath *string, subDir string) (uuid.UUID, error) {
 	var pathToGetFrom string
 
 	if filePath == nil {
@@ -149,29 +151,37 @@ func (f *FileHandler) ReadUserSecretId(filePath *string) (uuid.UUID, error) {
 
 		var filePathToCheck = path.Join(currentDir, f.conf.LocalSecretFileName)
 
-		_, err = os.Stat(filePathToCheck)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return uuid.New(), err
-			} else {
-				pathToGetFrom = filePathToCheck
-			}
-		}
+		pathToGetFrom = filePathToCheck
 	} else {
 		pathToGetFrom = *filePath
 	}
 
-	body, err := os.ReadFile(pathToGetFrom)
-	if err != nil {
-		log.Printf("unable to read file: %v/n", err)
-		return uuid.New(), err
+	if strings.Compare(subDir, "") != 0 && strings.Contains(pathToGetFrom, subDir) {
+		currentDir, _ := os.Getwd()
+		Root := filepath.Join(currentDir, "..")
+		pathToGetFrom = Root
+	}
+	var filePathToCheck = path.Join(pathToGetFrom, f.conf.LocalSecretFileName)
+	_, err := os.Stat(filePathToCheck)
+	if err == nil {
+		if os.IsNotExist(err) {
+			return uuid.New(), err
+		} else {
+			body, err := os.ReadFile(filePathToCheck)
+			if err != nil {
+				log.Printf("unable to read file: %v/n", err)
+				return uuid.New(), err
+			}
+
+			parsedUuid, err := uuid.Parse(string(body))
+			if err != nil {
+				log.Printf("unable to read file: %v/n", err)
+				return uuid.New(), err
+			}
+
+			return parsedUuid, nil
+		}
 	}
 
-	parsedUuid, err := uuid.Parse(string(body))
-	if err != nil {
-		log.Printf("unable to read file: %v/n", err)
-		return uuid.New(), err
-	}
-
-	return parsedUuid, nil
+	return uuid.New(), err
 }
